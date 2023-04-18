@@ -30,7 +30,7 @@ class AuthController extends Controller
         } catch (Exception $error) {
             return response()->json([
                 'status_code' => 500,
-                'message' => 'Error in login',
+                'message' => 'Error in signup',
                 'error' => $error,
             ]);
         }
@@ -87,5 +87,9 @@ class AuthController extends Controller
                 'error' => $error,
             ]);
         }
+    }
+    public function me(Request $request)
+    {
+        return $request->user();
     }
 }

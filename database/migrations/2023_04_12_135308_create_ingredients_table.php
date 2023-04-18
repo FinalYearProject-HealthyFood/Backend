@@ -13,6 +13,13 @@ return new class extends Migration
     {
         Schema::create('ingredients', function (Blueprint $table) {
             $table->id();
+            $table->string("name");
+            $table->double("serving_size");
+            $table->double("price");
+            $table->double("calories");
+            $table->double("protein");
+            $table->double("carb");
+            $table->double("fat");
             $table->timestamps();
         });
     }

@@ -11,14 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('meal_ingredients', function (Blueprint $table) {
+        Schema::create('order_items', function (Blueprint $table) {
             $table->id();
-            $table->double('quantity')->default(1.0);
-            $table->bigInteger('meal_id')->unsigned()->index();
-            $table->foreign('meal_id')->references('id')->on('meals')->onDelete('cascade');
-            $table->bigInteger('ingredient_id')->unsigned()->index();
-            $table->foreign('ingredient_id')->references('id')->on('ingredients')->onDelete('cascade');
+            $table->bigInteger('order_id')->unsigned()->index();
+            $table->bigInteger('meal_id')->unsigned()->nullable();
+            $table->bigInteger('ingredient_id')->unsigned()->nullable();
+            $table->integer('quantity');
+            $table->double("total_price")->default(0.0);
             $table->timestamps();
+            
+            $table->foreign('order_id')->references('id')->on('orders')->onDelete('cascade');
+            $table->foreign('meal_id')->references('id')->on('meals')->onDelete('cascade');
+            $table->foreign('ingredient_id')->references('id')->on('ingredients')->onDelete('cascade');
         });
     }
 
@@ -27,6 +31,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('meal_ingredients');
+        Schema::dropIfExists('order_items');
     }
 };
