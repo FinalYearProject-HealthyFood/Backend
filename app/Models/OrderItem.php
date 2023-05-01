@@ -9,13 +9,22 @@ class OrderItem extends Model
 {
     use HasFactory;
 
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id', 'id');
+    }
+
     public function order()
     {
-        return $this->belongsTo(Order::class);
+        return $this->belongsTo(Order::class,'order_id','id');
     }
 
     public function meal()
     {
-        return $this->belongsTo(Meal::class);
+        return $this->belongsTo(Meal::class,'meal_id','id');
+    }
+    public function ingredient()
+    {
+        return $this->belongsTo(Ingredient::class,'ingredient_id','id');
     }
 }

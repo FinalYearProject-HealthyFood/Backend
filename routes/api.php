@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\IngredientController;
 use App\Http\Controllers\MealController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\OrderItemController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -25,6 +26,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
+    Route::post('/order-items/store', [OrderItemController::class, 'store'])->name('orderItems.store');
     Route::post('/logout', [AuthController::class, 'logout']);
 });
 
@@ -54,9 +56,13 @@ Route::delete('/ingredients', [IngredientController::class, 'destroyAll'])->name
 // Routes for orders
 Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
 Route::get('/orders/{id}', [OrderController::class, 'show'])->name('orders.show');
-Route::post('/orders', [OrderController::class, 'store'])->name('orders.store');
+Route::post('/orders/store', [OrderController::class, 'store'])->name('orders.store');
+Route::put('/orders/update/{id}', [OrderController::class, 'update'])->name('orders.update');
+Route::delete('/orders/delete/{id}', [OrderController::class, 'destroy'])->name('orders.destroy');
 
 // Routes for order items
 Route::get('/order-items', [OrderItemController::class, 'index'])->name('orderItems.index');
 Route::get('/order-items/{id}', [OrderItemController::class, 'show'])->name('orderItems.show');
-Route::post('/order-items', [OrderItemController::class, 'store'])->name('orderItems.store');
+// Route::post('/order-items/store', [OrderItemController::class, 'store'])->name('orderItems.store');
+Route::put('/order-items/update/{id}', [OrderController::class, 'update'])->name('orderItems.update');
+Route::delete('/order-items/delete/{id}', [OrderController::class, 'destroy'])->name('orderItems.destroy');

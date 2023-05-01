@@ -13,13 +13,16 @@ return new class extends Migration
     {
         Schema::create('order_items', function (Blueprint $table) {
             $table->id();
-            $table->bigInteger('order_id')->unsigned()->index();
+            $table->bigInteger('user_id')->unsigned()->index();
+            $table->bigInteger('order_id')->unsigned()->nullable();
             $table->bigInteger('meal_id')->unsigned()->nullable();
             $table->bigInteger('ingredient_id')->unsigned()->nullable();
+            $table->enum('status',['pending','accepted','delivered','canceled'])->default('pending');
             $table->integer('quantity');
             $table->double("total_price")->default(0.0);
             $table->timestamps();
             
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->foreign('order_id')->references('id')->on('orders')->onDelete('cascade');
             $table->foreign('meal_id')->references('id')->on('meals')->onDelete('cascade');
             $table->foreign('ingredient_id')->references('id')->on('ingredients')->onDelete('cascade');

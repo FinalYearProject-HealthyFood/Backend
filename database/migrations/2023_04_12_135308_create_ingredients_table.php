@@ -20,6 +20,7 @@ return new class extends Migration
             $table->double("protein");
             $table->double("carb");
             $table->double("fat");
+            $table->enum('status',['active','deactive'])->default('active');
             $table->timestamps();
         });
     }

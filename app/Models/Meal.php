@@ -16,6 +16,11 @@ class Meal extends Model
 
     public function orderItems()
     {
-        return $this->hasMany(OrderItem::class);
+        return $this->hasMany(OrderItem::class,'meal_id', 'id');
+    }
+
+    public function rating()
+    {
+        return $this->hasMany(Rating::class,'meal_id', 'id');
     }
 }
