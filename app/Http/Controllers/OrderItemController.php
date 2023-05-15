@@ -101,15 +101,15 @@ class OrderItemController extends Controller
         $ingredient = null;
 
         if ($orderItem->meal_id) {
-            $meal = Meal::find($request['meal_id']);
-            $orderItem->price = $meal->price * $orderItem->quantity;
+            $meal = Meal::find($orderItem->meal_id);
+            $orderItem->total_price = $meal->price * $orderItem->quantity;
         } elseif ($orderItem->ingredient_id) {
-            $ingredient = Ingredient::find($request['ingredient_id']);
-            $orderItem->price = $ingredient->price * $orderItem->quantity;
+            $ingredient = Ingredient::find($orderItem->ingredient_id);
+            $orderItem->total_price = $ingredient->price * $orderItem->quantity;
         } else {
             return response()->json(['error' => 'Empty order item.'], 400);
         }
-
+        
         if ($orderItem->save()) {
             return response()->json(['message' => 'Order item updated successfully', 'data' => $orderItem]);
         } else {
@@ -133,5 +133,14 @@ class OrderItemController extends Controller
         } else {
             return response()->json(['message' => 'Unable to delete order item'], 500);
         }
+    }
+
+    public function destroy_all_by_user() {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['errors' => 'you dont have this permission'], 422);
+        }
+        OrderItem::where('user_id', $user->id)->delete();
+        return response()->json(['message' => 'Order items deleted successfully']);
     }
 }

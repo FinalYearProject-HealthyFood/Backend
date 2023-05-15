@@ -6,6 +6,7 @@ use App\Http\Requests\LoginRequest;
 use App\Http\Requests\SingupRequest;
 use App\Models\User;
 use Exception;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -16,11 +17,22 @@ class AuthController extends Controller
     {
         try {
             $data = $request->validated();
+            // $exist_user = User::where('email',$data['name'])->first();
+            // if ($exist_user) {
+            //     return response()->json([
+            //         'status_code' => 422,
+            //         'message' => 'Email already exists',
+    
+            //     ]);
+            // }
             $user = User::create([
                 'name' => $data['name'],
                 'email' => $data['email'],
                 'password' => bcrypt($data['password'])
             ]);
+
+            event(new Registered($user));
+
             $token = $user->createToken($user->email)->plainTextToken;
     
             return response([

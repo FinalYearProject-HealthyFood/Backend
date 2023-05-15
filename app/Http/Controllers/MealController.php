@@ -61,7 +61,7 @@ class MealController extends Controller
      */
     public function show($id)
     {
-        $meal = Meal::findOrFail($id);
+        $meal = Meal::with('ingredients')->findOrFail($id);
 
         return response()->json([
             'data' => $meal,
