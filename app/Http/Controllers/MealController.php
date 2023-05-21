@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Meal;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class MealController extends Controller
 {
@@ -11,6 +14,15 @@ class MealController extends Controller
      * Display a listing of the resource.
      */
     public function index()
+    {
+        $meals = Meal::where('status', 'active')->orderBy('id','DESC')->paginate(6);
+
+        return response()->json([
+            'data' => $meals,
+        ]);
+    }
+
+    public function all()
     {
         $meals = Meal::all();
 
@@ -123,6 +135,39 @@ class MealController extends Controller
             'message' => 'Meal updated successfully',
             'data' => $meal,
         ]);
+    }
+
+    public function saveImage(Request $request, $id)
+    {
+        $meal = Meal::findOrFail($id);
+        $image = $request->file('image');
+        if ($image) {
+            $type = $image->getClientOriginalExtension();
+
+            if (!in_array($type, ['jpg', 'jpeg', 'gif', 'png'])) {
+                return response()->json([
+                    'message' => 'Invalid image type',
+                ], 422);
+            }
+
+            // $dir = 'public\images\meals\\';
+            $dir = 'images/meals';
+            $file = Str::random() . '.' . $type;
+            // if (!Storage::exists($dir)) {
+            //     Storage::makeDirectory($dir);
+            // }
+            if ($meal->image) {
+                $exitspath = 'public/' . $meal->image;
+                Storage::delete($exitspath);
+            }
+            $meal->image = $request->file('image')->storeAs($dir, $file, 'public');
+            $meal->save();
+            return $meal;
+        } else {
+            return response()->json([
+                'message' => 'Image not found',
+            ], 500);
+        }
     }
 
     /**

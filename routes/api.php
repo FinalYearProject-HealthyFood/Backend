@@ -52,8 +52,10 @@ Route::post('/email/verify/resend', [VerifyEmailController::class, 'resend'])
 Route::controller(MealController::class)->group(function () {
     Route::group(['prefix' => 'meals'], function () {
         Route::get('/', [MealController::class, 'index'])->name('meals.index');
+        Route::get('/all', [MealController::class, 'all'])->name('meals.all');
         Route::get('/{id}', [MealController::class, 'show'])->name('meals.show');
         Route::post('/store', [MealController::class, 'store'])->name('meals.store');
+        Route::post('/save-image/{id}', [MealController::class, 'saveImage'])->name('meals.saveImage');
         Route::put('/update/{id}', [MealController::class, 'update'])->name('meals.update');
         Route::delete('/delete/{id}', [MealController::class, 'destroy'])->name('meals.destroy');
         Route::delete('/', [MealController::class, 'destroyAll'])->name('meals.destroyAll');
@@ -64,8 +66,10 @@ Route::controller(MealController::class)->group(function () {
 Route::controller(IngredientController::class)->group(function () {
     Route::group(['prefix' => 'ingredients'], function () {
         Route::get('/', [IngredientController::class, 'index'])->name('ingredients.index');
+        Route::get('/all', [IngredientController::class, 'all'])->name('ingredients.all');
         Route::get('/{id}', [IngredientController::class, 'show'])->name('ingredients.show');
         Route::post('/store', [IngredientController::class, 'store'])->name('ingredients.store');
+        Route::post('/save-image/{id}', [IngredientController::class, 'saveImage'])->name('ingredients.saveImage');
         Route::put('/update/{id}', [IngredientController::class, 'update'])->name('ingredients.update');
         Route::delete('/delete/{id}', [IngredientController::class, 'destroy'])->name('ingredients.destroy');
         Route::delete('/', [IngredientController::class, 'destroyAll'])->name('ingredients.destroyAll');

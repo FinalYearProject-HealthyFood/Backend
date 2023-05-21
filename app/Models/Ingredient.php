@@ -18,4 +18,9 @@ class Ingredient extends Model
     {
         return $this->hasMany(OrderItem::class,'ingredient_id', 'id');
     }
+
+    public function ratingIngredient()
+    {
+        return $this->hasMany(RatingIngredient::class,'ingredient_id', 'id');
+    }
 }

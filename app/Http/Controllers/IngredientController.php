@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Ingredient;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class IngredientController extends Controller
 {
@@ -11,6 +13,15 @@ class IngredientController extends Controller
      * Display a listing of the resource.
      */
     public function index()
+    {
+        $ingredients = Ingredient::where('status', 'active')->orderBy('id','DESC')->paginate(6);
+
+        return response()->json([
+            'data' => $ingredients,
+        ]);
+    }
+
+    public function all()
     {
         $ingredients = Ingredient::all();
 
@@ -96,6 +107,39 @@ class IngredientController extends Controller
             'message' => 'Ingredient updated successfully',
             'data' => $ingredient,
         ]);
+    }
+
+    public function saveImage(Request $request, $id)
+    {
+        $ingredient = Ingredient::findOrFail($id);
+        $image = $request->file('image');
+        if ($image) {
+            $type = $image->getClientOriginalExtension();
+
+            if (!in_array($type, ['jpg', 'jpeg', 'gif', 'png'])) {
+                return response()->json([
+                    'message' => 'Invalid image type',
+                ], 422);
+            }
+
+            // $dir = 'public\images\meals\\';
+            $dir = 'images/ingredients';
+            $file = Str::random() . '.' . $type;
+            // if (!Storage::exists($dir)) {
+            //     Storage::makeDirectory($dir);
+            // }
+            if ($ingredient->image) {
+                $exitspath = 'public/' . $ingredient->image;
+                Storage::delete($exitspath);
+            }
+            $ingredient->image = $request->file('image')->storeAs($dir, $file, 'public');
+            $ingredient->save();
+            return $ingredient;
+        } else {
+            return response()->json([
+                'message' => 'Image not found',
+            ], 500);
+        }
     }
 
     /**
