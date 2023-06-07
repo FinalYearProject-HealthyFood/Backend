@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Meal;
+use App\Models\OrderItem;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -15,20 +17,16 @@ class MealController extends Controller
      */
     public function index()
     {
-        $meals = Meal::where('status', 'active')->orderBy('id','DESC')->paginate(6);
+        $meals = Meal::with("ingredients")->where('status', 'active')->orderBy('id', 'DESC')->paginate(6);
 
-        return response()->json([
-            'data' => $meals,
-        ]);
+        return response()->json($meals);
     }
 
-    public function all()
+    public function all(Request $request)
     {
-        $meals = Meal::all();
+        $meals = Meal::with("ingredients")->where('name', 'like', '%' . $request->search . '%')->orderBy('id', 'DESC')->paginate(5);
 
-        return response()->json([
-            'data' => $meals,
-        ]);
+        return response()->json($meals);
     }
 
     /**
@@ -42,7 +40,7 @@ class MealController extends Controller
             'price' => 'required|numeric|min:0',
             'ingredients' => 'nullable|array',
             'ingredients.*.id' => 'required|exists:ingredients,id',
-            'ingredients.*.quantity' => 'required|integer|min:1',
+            'ingredients.*.quantity' => 'required|min:1',
         ]);
 
         $meal = new Meal();
@@ -54,6 +52,118 @@ class MealController extends Controller
         $meal->protein = $request->protein;
         $meal->carb = $request->carb;
         $meal->fat = $request->fat;
+        if ($request->has('sat_fat')) {
+            $meal->sat_fat = $request->sat_fat;
+        }
+        if ($request->has('trans_fat')) {
+            $meal->trans_fat = $request->trans_fat;
+        }
+        if ($request->has('fiber')) {
+            $meal->fiber = $request->fiber;
+        }
+        if ($request->has('sugar')) {
+            $meal->sugar = $request->sugar;
+        }
+        if ($request->has('cholesterol')) {
+            $meal->cholesterol = $request->cholesterol;
+        }
+        if ($request->has('sodium')) {
+            $meal->sodium = $request->sodium;
+        }
+        if ($request->has('calcium')) {
+            $meal->calcium = $request->calcium;
+        }
+        if ($request->has('iron')) {
+            $meal->iron = $request->iron;
+        }
+        if ($request->has('zinc')) {
+            $meal->zinc = $request->zinc;
+        }
+        if ($request->has('status')) {
+            $meal->status = $request->status;
+        }
+        $meal->save();
+
+        if ($request->ingredients) {
+            foreach ($request->ingredients as $ingredient) {
+                $meal->ingredients()->attach($ingredient['id'], ['quantity' => $ingredient['quantity']]);
+            }
+        }
+
+        $image = $request->file('image');
+        if ($image) {
+            $type = $image->getClientOriginalExtension();
+
+            if (!in_array($type, ['jpg', 'jpeg', 'gif', 'png'])) {
+                return response()->json([
+                    'message' => 'Invalid image type',
+                ], 422);
+            }
+
+            $dir = 'images/meals';
+            $file = Str::random() . '.' . $type;
+            if ($meal->image) {
+                $exitspath = 'public/' . $meal->image;
+                Storage::delete($exitspath);
+            }
+            $meal->image = $request->file('image')->storeAs($dir, $file, 'public');
+            $meal->save();
+        }
+
+        return response()->json([
+            'message' => 'Meal created successfully',
+            'data' => $meal,
+        ]);
+    }
+
+    public function dietFromAi(Request $request)
+    {
+        $request->validate([
+            'name' => 'required',
+            'description' => 'nullable',
+            'price' => 'required|numeric|min:0',
+            'ingredients' => 'nullable|array',
+            'ingredients.*.id' => 'required|exists:ingredients,id',
+            'ingredients.*.quantity' => 'required|min:1',
+        ]);
+
+        $meal = new Meal();
+        $meal->name = $request->name;
+        $meal->description = $request->description;
+        $meal->price = $request->price;
+        $meal->serving_size = $request->serving_size;
+        $meal->calories = $request->calories;
+        $meal->protein = $request->protein;
+        $meal->carb = $request->carb;
+        $meal->fat = $request->fat;
+        if ($request->has('sat_fat')) {
+            $meal->sat_fat = $request->sat_fat;
+        }
+        if ($request->has('trans_fat')) {
+            $meal->trans_fat = $request->trans_fat;
+        }
+        if ($request->has('fiber')) {
+            $meal->fiber = $request->fiber;
+        }
+        if ($request->has('sugar')) {
+            $meal->sugar = $request->sugar;
+        }
+        if ($request->has('cholesterol')) {
+            $meal->cholesterol = $request->cholesterol;
+        }
+        if ($request->has('sodium')) {
+            $meal->sodium = $request->sodium;
+        }
+        if ($request->has('calcium')) {
+            $meal->calcium = $request->calcium;
+        }
+        if ($request->has('iron')) {
+            $meal->iron = $request->iron;
+        }
+        if ($request->has('zinc')) {
+            $meal->zinc = $request->zinc;
+        }
+        $meal->status = "deactive";
         $meal->save();
 
         if ($request->ingredients) {
@@ -73,11 +183,9 @@ class MealController extends Controller
      */
     public function show($id)
     {
-        $meal = Meal::with('ingredients')->findOrFail($id);
+        $meal = Meal::with('ingredients')->with('rating')->findOrFail($id);
 
-        return response()->json([
-            'data' => $meal,
-        ]);
+        return response()->json($meal);
     }
 
     /**
@@ -92,7 +200,7 @@ class MealController extends Controller
             'price' => 'nullable|numeric|min:0',
             'ingredients' => 'nullable|array',
             'ingredients.*.id' => 'required|exists:ingredients,id',
-            'ingredients.*.quantity' => 'required|integer|min:1',
+            'ingredients.*.quantity' => 'required|min:1',
         ]);
 
         if ($request->has('name')) {
@@ -118,6 +226,36 @@ class MealController extends Controller
         }
         if ($request->has('fat')) {
             $meal->fat = $request->fat;
+        }
+        if ($request->has('sat_fat')) {
+            $meal->sat_fat = $request->sat_fat;
+        }
+        if ($request->has('trans_fat')) {
+            $meal->trans_fat = $request->trans_fat;
+        }
+        if ($request->has('fiber')) {
+            $meal->fiber = $request->fiber;
+        }
+        if ($request->has('sugar')) {
+            $meal->sugar = $request->sugar;
+        }
+        if ($request->has('cholesterol')) {
+            $meal->cholesterol = $request->cholesterol;
+        }
+        if ($request->has('sodium')) {
+            $meal->sodium = $request->sodium;
+        }
+        if ($request->has('calcium')) {
+            $meal->calcium = $request->calcium;
+        }
+        if ($request->has('iron')) {
+            $meal->iron = $request->iron;
+        }
+        if ($request->has('zinc')) {
+            $meal->zinc = $request->zinc;
+        }
+        if ($request->has('status')) {
+            $meal->status = $request->status;
         }
 
 

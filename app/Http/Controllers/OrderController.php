@@ -22,6 +22,12 @@ class OrderController extends Controller
         ]);
     }
 
+    public function showPengdingByUser(Request $request) {
+        $user = Auth::user();
+        $orderItems = OrderItem::where('user_id', $user->id)->get();
+
+        return response()->json($orderItems);
+    }
     /**
      * Store a newly created resource in storage.
      */
@@ -31,14 +37,39 @@ class OrderController extends Controller
         $orderItems = OrderItem::where('user_id', $user->id)->where('status', 'pending')->get();
         $order = new Order();
         $order->user_id = $user->id;
+        $order->delivery_address = $request->delivery_address;
+        $order->username = $request->username;
+        $order->phone = $request->phone;
         $order->save();
         foreach ($orderItems as $orderItem) {
             $orderItem->order_id = $order->id;
             $orderItem->status = "accepted"; 
             $orderItem->save();
             $order->total_price += $orderItem->total_price;
+            $order->save();
         }
+        $order->sendOrderDetailEmail();
         return $order;
+    }
+
+    public function sendOrderEmail($id){
+        $order = Order::find($id);
+        $order->sendOrderDetailEmail();
+        // try {
+        //     //code...
+        //     $order->sendOrderDetailEmail();
+        //     $isSent = true;
+        // } catch (\Exception $e) {
+        //     //throw $th;
+        //     $isSent = false;
+        // }
+        // if($isSent) {
+        //     return response()->json(["data" => "success"], 200);
+        // }
+        // else {
+        //     return response()->json(["data" => "fail"], 200);
+        // }
+        return response()->json(['data' => $order], 200);
     }
 
     /**
@@ -64,16 +95,25 @@ class OrderController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, $id)
     {
-        //
+        $order = Order::find($id);
+        $order->status = $request->status;
+        return response()->json([
+            'success' => true,
+            'data' => $order
+        ]);
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy($id)
     {
-        //
+        $order = Order::findOrFail($id);
+        $order->delete();
+        return response()->json([
+            'message' => 'Order deleted successfully',
+        ]);
     }
 }

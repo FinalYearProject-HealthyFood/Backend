@@ -5,6 +5,8 @@ use App\Http\Controllers\IngredientController;
 use App\Http\Controllers\MealController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\OrderItemController;
+use App\Http\Controllers\SearchController;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\VerifyEmailController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -28,6 +30,8 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::post('/profile/update', [UserController::class, 'update']);
+    Route::post('/profile/change-password', [UserController::class, 'changePassword']);
 });
 
 Route::get('/test', function () {
@@ -39,9 +43,10 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/signup', [AuthController::class, 'signup']);
 
 // Verify email
-Route::get('/email/verify/{id}/{hash}', [VerifyEmailController::class, 'verifyEmail'])
-    ->middleware(['signed'])
-    ->name('verification.verify');
+// Route::get('/email/verify/{id}/{hash}', [VerifyEmailController::class, 'verifyEmail'])
+//     ->middleware(['signed'])
+//     ->name('verification.verify');
+Route::get('/verify-email/{id}/{token}', [VerifyEmailController::class, 'verifyEmail'])->middleware(['signed'])->name('verification.verify');
 
 // Resend link to verify email
 Route::post('/email/verify/resend', [VerifyEmailController::class, 'resend'])
@@ -55,10 +60,20 @@ Route::controller(MealController::class)->group(function () {
         Route::get('/all', [MealController::class, 'all'])->name('meals.all');
         Route::get('/{id}', [MealController::class, 'show'])->name('meals.show');
         Route::post('/store', [MealController::class, 'store'])->name('meals.store');
+        Route::post('/fromai', [MealController::class, 'dietFromAi'])->name('meals.dietFromAi');
         Route::post('/save-image/{id}', [MealController::class, 'saveImage'])->name('meals.saveImage');
         Route::put('/update/{id}', [MealController::class, 'update'])->name('meals.update');
         Route::delete('/delete/{id}', [MealController::class, 'destroy'])->name('meals.destroy');
         Route::delete('/', [MealController::class, 'destroyAll'])->name('meals.destroyAll');
+    });
+});
+
+Route::controller(UserController::class)->group(function () {
+    Route::group(['prefix' => 'users'], function () {
+        Route::get('/', [UserController::class, 'index'])->name('users.index');
+        Route::post('/update-by-manager', [UserController::class, 'updateByManager']);
+        Route::post('/store', [UserController::class, 'store']);
+        Route::delete('/delete/{id}', [UserController::class, 'destroy']);
     });
 });
 
@@ -67,6 +82,9 @@ Route::controller(IngredientController::class)->group(function () {
     Route::group(['prefix' => 'ingredients'], function () {
         Route::get('/', [IngredientController::class, 'index'])->name('ingredients.index');
         Route::get('/all', [IngredientController::class, 'all'])->name('ingredients.all');
+        Route::get('/all-filter', [IngredientController::class, 'allToFilter'])->name('ingredients.allToFilter');
+        Route::get('/all-filter-active', [IngredientController::class, 'allToFilterActive'])->name('ingredients.allToFilterActive');
+        Route::get('/datatoai', [IngredientController::class, 'DataToAI'])->name('ingredients.DataToAI');
         Route::get('/{id}', [IngredientController::class, 'show'])->name('ingredients.show');
         Route::post('/store', [IngredientController::class, 'store'])->name('ingredients.store');
         Route::post('/save-image/{id}', [IngredientController::class, 'saveImage'])->name('ingredients.saveImage');
@@ -81,10 +99,11 @@ Route::controller(OrderController::class)->group(function () {
     Route::group(['prefix' => 'orders'], function () {
         Route::get('/', [OrderController::class, 'index'])->name('orders.index');
         Route::get('/{id}', [OrderController::class, 'show'])->name('orders.show');
+        Route::get('/send-email/{id}', [OrderController::class, 'sendOrderEmail'])->name('orders.sendOrderEmail');
         Route::put('/update/{id}', [OrderController::class, 'update'])->name('orders.update');
         Route::delete('/delete/{id}', [OrderController::class, 'destroy'])->name('orders.destroy');
         Route::middleware('auth:sanctum')->group(function () {
-            Route::post('/store', [OrderController::class, 'store'])->name('orders.store');
+            Route::post('/store', [OrderController::class, 'store'])->middleware(['verified'])->name('orders.store');
         });
     });
 });
@@ -94,11 +113,31 @@ Route::controller(OrderItemController::class)->group(function () {
     Route::group(['prefix' => 'order-items'], function () {
         Route::get('/', [OrderItemController::class, 'index'])->name('orderItems.index');
         Route::get('/{id}', [OrderItemController::class, 'show'])->name('orderItems.show');
+        Route::delete('/delete/{id}', [OrderItemController::class, 'destroy'])->name('orderItems.destroy');
         Route::middleware('auth:sanctum')->group(function () {
             Route::post('/store', [OrderItemController::class, 'store'])->name('orderItems.store');
+            Route::post('/fromai', [OrderItemController::class, 'dietFromAi'])->name('orderItems.dietFromAi');
             Route::put('/update/{id}', [OrderItemController::class, 'update'])->name('orderItems.update');
-            Route::delete('/delete/{id}', [OrderItemController::class, 'destroy'])->name('orderItems.destroy');
+            Route::delete('/delete-by-user/{id}', [OrderItemController::class, 'destroyByUser'])->name('orderItems.destroy');
             Route::delete('/delete-all-by-user', [OrderItemController::class, 'destroy_all_by_user'])->name('orderItems.destroy_all_by_user');
+            Route::delete('/delete-all-pending-by-user', [OrderItemController::class, 'destroy_all_pending_by_user'])->name('orderItems.destroy_all_pending_by_user');
+            Route::post('/on-pending-by-user', [OrderItemController::class, 'onPendingByUser'])->name('orderItems.onPendingByUser');
+            Route::post('/cart-count-by-user', [OrderItemController::class, 'cartCountByUser'])->name('orderItems.onPendingByUser');
+            Route::post('/item-deliverd-by-user', [OrderItemController::class, 'itemDeliverdByUser'])->name('orderItems.onPendingByUser');
         });
+    });
+});
+
+Route::controller(SearchController::class)->group(function () {
+    Route::group(['prefix' => 'search'], function () {
+        Route::get('/home', [SearchController::class, 'searchHome'])->name('search.searchHome');
+        // Route::get('/{id}', [OrderItemController::class, 'show'])->name('orderItems.show');
+        // Route::middleware('auth:sanctum')->group(function () {
+        //     Route::post('/store', [OrderItemController::class, 'store'])->name('orderItems.store');
+        //     Route::post('/fromai', [OrderItemController::class, 'dietFromAi'])->name('orderItems.dietFromAi');
+        //     Route::put('/update/{id}', [OrderItemController::class, 'update'])->name('orderItems.update');
+        //     Route::delete('/delete/{id}', [OrderItemController::class, 'destroy'])->name('orderItems.destroy');
+        //     Route::delete('/delete-all-by-user', [OrderItemController::class, 'destroy_all_by_user'])->name('orderItems.destroy_all_by_user');
+        // });
     });
 });

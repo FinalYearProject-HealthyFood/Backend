@@ -16,6 +16,9 @@ return new class extends Migration
             $table->bigInteger('user_id')->unsigned()->index();
             $table->enum('status',['pending','accepted','delivered','canceled'])->default('pending');
             $table->double("total_price")->default(0.0);
+            $table->string('delivery_address');
+            $table->string('username');
+            $table->string('phone');
             $table->timestamps();
             
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');

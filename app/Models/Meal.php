@@ -16,11 +16,26 @@ class Meal extends Model
 
     public function orderItems()
     {
-        return $this->hasMany(OrderItem::class,'meal_id', 'id');
+        return $this->hasMany(OrderItem::class, 'meal_id', 'id');
     }
 
     public function rating()
     {
-        return $this->hasMany(Rating::class,'meal_id', 'id');
+        return $this->hasMany(Rating::class, 'meal_id', 'id');
+    }
+
+    public function is_rating_by_auth($id)
+    {
+        $raters = array();
+
+        foreach ($this->rating as $rate) :
+            array_push($raters, $rate->user_id);
+        endforeach;
+
+        if (in_array($id, $raters)) {
+            return true;
+        } else {
+            return false;
+        }
     }
 }

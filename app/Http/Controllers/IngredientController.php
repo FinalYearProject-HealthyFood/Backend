@@ -14,20 +14,37 @@ class IngredientController extends Controller
      */
     public function index()
     {
-        $ingredients = Ingredient::where('status', 'active')->orderBy('id','DESC')->paginate(6);
+        $ingredients = Ingredient::where('status', 'active')->paginate(6);
 
-        return response()->json([
-            'data' => $ingredients,
-        ]);
+        return response()->json($ingredients);
     }
 
-    public function all()
+    public function all(Request $request)
+    {
+        $ingredients = Ingredient::where('name', 'like', '%' . $request->search . '%')->orderBy('id', 'DESC')->paginate(5);
+
+        return response()->json($ingredients);
+    }
+
+    public function allToFilter()
     {
         $ingredients = Ingredient::all();
 
-        return response()->json([
-            'data' => $ingredients,
-        ]);
+        return response()->json($ingredients);
+    }
+    
+    public function allToFilterActive()
+    {
+        $ingredients = Ingredient::where('status', 'active')->get();
+
+        return response()->json($ingredients);
+    }
+
+    public function DataToAI()
+    {
+        $ingredients = Ingredient::all();
+
+        return response()->json($ingredients);
     }
 
     /**
@@ -48,7 +65,58 @@ class IngredientController extends Controller
         $ingredient->protein = $request->protein;
         $ingredient->carb = $request->carb;
         $ingredient->fat = $request->fat;
+        if ($request->has('sat_fat')) {
+            $ingredient->sat_fat = $request->sat_fat;
+        }
+        if ($request->has('trans_fat')) {
+            $ingredient->trans_fat = $request->trans_fat;
+        }
+        if ($request->has('fiber')) {
+            $ingredient->fiber = $request->fiber;
+        }
+        if ($request->has('sugar')) {
+            $ingredient->sugar = $request->sugar;
+        }
+        if ($request->has('cholesterol')) {
+            $ingredient->cholesterol = $request->cholesterol;
+        }
+        if ($request->has('sodium')) {
+            $ingredient->sodium = $request->sodium;
+        }
+        if ($request->has('calcium')) {
+            $ingredient->calcium = $request->calcium;
+        }
+        if ($request->has('iron')) {
+            $ingredient->iron = $request->iron;
+        }
+        if ($request->has('zinc')) {
+            $ingredient->zinc = $request->zinc;
+        }
+        if ($request->has('status')) {
+            $ingredient->status = $request->status;
+        }
         $ingredient->save();
+
+        $image = $request->file('image');
+        if ($image) {
+            $type = $image->getClientOriginalExtension();
+
+            if (!in_array($type, ['jpg', 'jpeg', 'gif', 'png'])) {
+                return response()->json([
+                    'message' => 'Invalid image type',
+                ], 422);
+            }
+
+            $dir = 'images/ingredients';
+            $file = Str::random() . '.' . $type;
+            if ($ingredient->image) {
+                $exitspath = 'public/' . $ingredient->image;
+                Storage::delete($exitspath);
+            }
+            $ingredient->image = $request->file('image')->storeAs($dir, $file, 'public');
+            $ingredient->save();
+            return $ingredient;
+        }
 
         return response()->json([
             'message' => 'Tạo thành phần ăn thành công!',
@@ -61,11 +129,9 @@ class IngredientController extends Controller
      */
     public function show($id)
     {
-        $ingredient = Ingredient::findOrFail($id);
+        $ingredient = Ingredient::with('rating')->findOrFail($id);
 
-        return response()->json([
-            'data' => $ingredient,
-        ]);
+        return response()->json($ingredient);
     }
 
     /**
@@ -99,6 +165,36 @@ class IngredientController extends Controller
         }
         if ($request->has('fat')) {
             $ingredient->fat = $request->fat;
+        }
+        if ($request->has('sat_fat')) {
+            $ingredient->sat_fat = $request->sat_fat;
+        }
+        if ($request->has('trans_fat')) {
+            $ingredient->trans_fat = $request->trans_fat;
+        }
+        if ($request->has('fiber')) {
+            $ingredient->fiber = $request->fiber;
+        }
+        if ($request->has('sugar')) {
+            $ingredient->sugar = $request->sugar;
+        }
+        if ($request->has('cholesterol')) {
+            $ingredient->cholesterol = $request->cholesterol;
+        }
+        if ($request->has('sodium')) {
+            $ingredient->sodium = $request->sodium;
+        }
+        if ($request->has('calcium')) {
+            $ingredient->calcium = $request->calcium;
+        }
+        if ($request->has('iron')) {
+            $ingredient->iron = $request->iron;
+        }
+        if ($request->has('zinc')) {
+            $ingredient->zinc = $request->zinc;
+        }
+        if ($request->has('status')) {
+            $ingredient->status = $request->status;
         }
 
         $ingredient->save();

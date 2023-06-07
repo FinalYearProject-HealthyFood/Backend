@@ -19,10 +19,39 @@ class OrderItemController extends Controller
     {
         $orderItems = OrderItem::all();
 
-        return response()->json([
-            'success' => true,
-            'data' => $orderItems
-        ]);
+        return response()->json($orderItems);
+    }
+
+    public function onPendingByUser(Request $request)
+    {
+        $user = Auth::user();
+        $orderItems = OrderItem::with('meal')->with('ingredient')->where("status", "pending")->where("user_id", $user->id)->orderBy('id', 'DESC')->get();
+
+        return response()->json($orderItems);
+    }
+
+    public function cartCountByUser(Request $request)
+    {
+        $user = Auth::user();
+        $orderItems = OrderItem::where("status", "pending")->where("user_id", $user->id)->get();
+
+        return response()->json($orderItems->count());
+    }
+
+    public function cartTotalPriceByUser(Request $request)
+    {
+        $user = Auth::user();
+        $orderItems = OrderItem::where("status", "pending")->where("user_id", $user->id)->sum('total_price');
+
+        return response()->json($orderItems);
+    }
+
+    public function itemDeliverdByUser(Request $request)
+    {
+        $user = Auth::user();
+        $orderItems = OrderItem::with('meal')->with('ingredient')->where("status", "accepted")->where("user_id", $user->id)->orderBy('id', 'DESC')->paginate(5);
+
+        return response()->json($orderItems);
     }
 
     /**
@@ -63,6 +92,79 @@ class OrderItemController extends Controller
         $orderItem->save();
 
         return response()->json($orderItem, 201);
+    }
+
+    public function dietFromAi(Request $request)
+    {
+        $request->validate([
+            'name' => 'required',
+            'description' => 'nullable',
+            'price' => 'required|numeric|min:0',
+            'ingredients' => 'nullable|array',
+            'ingredients.*.id' => 'required|exists:ingredients,id',
+            'ingredients.*.quantity' => 'required',
+        ]);
+
+        $meal = new Meal();
+        $meal->name = $request->name;
+        $meal->description = $request->description;
+        $meal->price = $request->price;
+        $meal->serving_size = $request->serving_size;
+        $meal->calories = $request->calories;
+        $meal->protein = $request->protein;
+        $meal->carb = $request->carb;
+        $meal->fat = $request->fat;
+        if ($request->has('sat_fat')) {
+            $meal->sat_fat = $request->sat_fat;
+        }
+        if ($request->has('trans_fat')) {
+            $meal->trans_fat = $request->trans_fat;
+        }
+        if ($request->has('fiber')) {
+            $meal->fiber = $request->fiber;
+        }
+        if ($request->has('sugar')) {
+            $meal->sugar = $request->sugar;
+        }
+        if ($request->has('cholesterol')) {
+            $meal->cholesterol = $request->cholesterol;
+        }
+        if ($request->has('sodium')) {
+            $meal->sodium = $request->sodium;
+        }
+        if ($request->has('calcium')) {
+            $meal->calcium = $request->calcium;
+        }
+        if ($request->has('iron')) {
+            $meal->iron = $request->iron;
+        }
+        if ($request->has('zinc')) {
+            $meal->zinc = $request->zinc;
+        }
+        $meal->status = "deactive";
+        $meal->save();
+
+        if ($request->ingredients) {
+            foreach ($request->ingredients as $ingredient) {
+                $meal->ingredients()->attach($ingredient['id'], ['quantity' => $ingredient['quantity']]);
+            }
+        }
+
+        $user = Auth::user();
+
+        $orderItem = new OrderItem();
+        $orderItem->quantity = 1;
+        $orderItem->user_id = $user->id;
+
+        $orderItem->meal_id = $meal->id;
+        $orderItem->total_price = $meal->price * $orderItem->quantity;
+
+        $orderItem->save();
+
+        return response()->json([
+            'message' => 'Meal created successfully',
+            'data' => $meal,
+        ]);
     }
 
     /**
@@ -123,6 +225,17 @@ class OrderItemController extends Controller
     public function destroy($id)
     {
         $orderItem = OrderItem::findOrFail($id);
+
+        if ($orderItem->delete()) {
+            return response()->json(['message' => 'Order item deleted successfully']);
+        } else {
+            return response()->json(['errors' => 'Unable to delete order item'], 500);
+        }
+    }
+
+    public function destroyByUser($id)
+    {
+        $orderItem = OrderItem::findOrFail($id);
         $user = Auth::user();
 
         if ($user->id != $orderItem->user_id) {
@@ -131,7 +244,7 @@ class OrderItemController extends Controller
         if ($orderItem->delete()) {
             return response()->json(['message' => 'Order item deleted successfully']);
         } else {
-            return response()->json(['message' => 'Unable to delete order item'], 500);
+            return response()->json(['errors' => 'Unable to delete order item'], 500);
         }
     }
 
@@ -141,6 +254,15 @@ class OrderItemController extends Controller
             return response()->json(['errors' => 'you dont have this permission'], 422);
         }
         OrderItem::where('user_id', $user->id)->delete();
+        return response()->json(['message' => 'Order items deleted successfully']);
+    }
+
+    public function destroy_all_pending_by_user() {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['errors' => 'you dont have this permission'], 422);
+        }
+        OrderItem::where('user_id', $user->id)->where("status", "pending")->delete();
         return response()->json(['message' => 'Order items deleted successfully']);
     }
 }

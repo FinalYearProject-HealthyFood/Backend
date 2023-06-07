@@ -4,10 +4,13 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 
+use App\Mail\VerifyEmail;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\URL;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable implements MustVerifyEmail
@@ -46,10 +49,24 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function orders()
     {
-        return $this->hasMany(Order::class,'user_id','id');
+        return $this->hasMany(Order::class, 'user_id', 'id');
     }
     public function orderItems()
     {
-        return $this->hasMany(Order::class,'user_id','id');
+        return $this->hasMany(Order::class, 'user_id', 'id');
+    }
+
+    public function sendVerificationEmail()
+    {
+        $verificationUrl = URL::temporarySignedRoute(
+            'verification.verify',
+            now()->addMinutes(60), // Expiration time for the URL (adjust as needed)
+            ['id' => $this->id, 'token' => sha1($this->email)]
+        );
+        $data = array(
+            'name' => $this->name,
+            'verificationUrl' => $verificationUrl,
+        );
+        Mail::to($this->email)->send(new VerifyEmail($data));
     }
 }

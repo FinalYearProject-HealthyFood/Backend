@@ -19,8 +19,23 @@ class Ingredient extends Model
         return $this->hasMany(OrderItem::class,'ingredient_id', 'id');
     }
 
-    public function ratingIngredient()
+    public function rating()
     {
         return $this->hasMany(RatingIngredient::class,'ingredient_id', 'id');
+    }
+
+    public function is_rating_by_auth($id)
+    {
+        $raters = array();
+
+        foreach ($this->rating as $rate) :
+            array_push($raters, $rate->user_id);
+        endforeach;
+
+        if (in_array($id, $raters)) {
+            return true;
+        } else {
+            return false;
+        }
     }
 }
