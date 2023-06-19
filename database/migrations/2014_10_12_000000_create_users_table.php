@@ -20,7 +20,9 @@ return new class extends Migration
             $table->integer('age')->nullable();
             $table->integer('weight')->nullable();
             $table->integer('height')->nullable();
-            $table->enum('gender',['male','female','none'])->default('none');
+            $table->enum('gender', ['male', 'female'])->default('male');
+            $table->enum('plan', [1, 2, 3, 4])->default(3);
+            $table->enum('activity', [1, 1.2, 1.375, 1.55, 1.725, 1.9])->default(1);
             $table->string('address')->default("");
             $table->string('phone')->default("");
             $table->rememberToken();

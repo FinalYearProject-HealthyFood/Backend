@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -12,17 +13,43 @@ class OrderController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $orders = Order::all();
+        $searchQuery = "";
+        if ($request->has('search')) {
+            $searchQuery = $request->search;
+        }
+        $orders = Order::with("user")
+            ->when($searchQuery, function ($query, $search) {
+                return $query->where(function ($query) use ($search) {
+                    $query->whereHas('user', function ($query) use ($search) {
+                        $query->where('name', 'like', "%" . $search . "%")
+                            ->orWhere('email', 'like', "%" . $search . "%")
+                            ->orWhere('phone', 'like', "%" . $search . "%");
+                    })
+                        ->orWhere('status', 'like', "%" . $search . "%")
+                        ->orWhere('phone', 'like', "%" . $search . "%")
+                        ->orWhere('delivery_address', 'like', "%" . $search . "%")
+                        ->orWhere('username', 'like', "%" . $search . "%")
+                        ->orWhere('id', 'like', "%" . $search . "%");
+                });
+            })
+            ->orderBy('id', 'DESC')
+            ->paginate(5);
 
-        return response()->json([
-            'success' => true,
-            'data' => $orders
-        ]);
+        return response()->json($orders);
     }
 
-    public function showPengdingByUser(Request $request) {
+    public function ordersByUser($id)
+    {
+        $user = User::findOrFail($id);
+        $orders = Order::with("user")->where("user_id", $user->id)->orderBy('id', 'DESC')->paginate(5);
+
+        return response()->json($orders);
+    }
+
+    public function showPengdingByUser(Request $request)
+    {
         $user = Auth::user();
         $orderItems = OrderItem::where('user_id', $user->id)->get();
 
@@ -34,25 +61,29 @@ class OrderController extends Controller
     public function store(Request $request)
     {
         $user = Auth::user();
-        $orderItems = OrderItem::where('user_id', $user->id)->where('status', 'pending')->get();
+        $orderItems = OrderItem::where('user_id', $user->id)->where('status', 'incart')->get();
         $order = new Order();
         $order->user_id = $user->id;
         $order->delivery_address = $request->delivery_address;
         $order->username = $request->username;
         $order->phone = $request->phone;
+        $order->status = "pending";
+        $order->total_price = $request->total_price;
         $order->save();
         foreach ($orderItems as $orderItem) {
             $orderItem->order_id = $order->id;
-            $orderItem->status = "accepted"; 
+            $orderItem->status = "pending";
             $orderItem->save();
-            $order->total_price += $orderItem->total_price;
+            // $order->total_price += $orderItem->total_price;
             $order->save();
         }
+        $order->save();
         $order->sendOrderDetailEmail();
         return $order;
     }
 
-    public function sendOrderEmail($id){
+    public function sendOrderEmail($id)
+    {
         $order = Order::find($id);
         $order->sendOrderDetailEmail();
         // try {
@@ -77,7 +108,7 @@ class OrderController extends Controller
      */
     public function show($id)
     {
-        $order = Order::find($id);
+        $order = Order::where('id', $id)->with("orderItems")->first();
 
         if (!$order) {
             return response()->json([
@@ -86,10 +117,7 @@ class OrderController extends Controller
             ], 404);
         }
 
-        return response()->json([
-            'success' => true,
-            'data' => $order
-        ]);
+        return response()->json($order);
     }
 
     /**
@@ -99,10 +127,15 @@ class OrderController extends Controller
     {
         $order = Order::find($id);
         $order->status = $request->status;
-        return response()->json([
-            'success' => true,
-            'data' => $order
-        ]);
+        $order->save();
+        $orderItems = $order->orderItems;
+        foreach ($orderItems as $orderItem) {
+            $orderItem->status = $request->status;
+            $orderItem->save();
+        }
+        $order->save();
+        $order->sendOrderDetailEmail();
+        return response()->json($order);
     }
 
     /**

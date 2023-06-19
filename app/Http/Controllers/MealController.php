@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Meal;
 use App\Models\OrderItem;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
@@ -17,7 +18,7 @@ class MealController extends Controller
      */
     public function index()
     {
-        $meals = Meal::with("ingredients")->where('status', 'active')->orderBy('id', 'DESC')->paginate(6);
+        $meals = Meal::with("ingredients")->withCount("rating")->where('status', 'active')->orderBy('id', 'DESC')->paginate(6);
 
         return response()->json($meals);
     }
@@ -27,6 +28,41 @@ class MealController extends Controller
         $meals = Meal::with("ingredients")->where('name', 'like', '%' . $request->search . '%')->orderBy('id', 'DESC')->paginate(5);
 
         return response()->json($meals);
+    }
+
+    public function getHighestRating()
+    {
+        $ingredients = Meal::where('status', 'active')
+            ->orderBy('rate', 'desc')
+            ->orderBy('updated_at', 'desc')
+            ->limit(4)
+            ->get();
+        return response()->json($ingredients);
+    }
+
+    public function getListHighRatingByUser($id)
+    {
+        $user = User::findOrFail($id);
+        $LikedMeals = $user->meal_rating()
+            ->whereIn('rate', [3, 4, 5])
+            ->with('meal')
+            ->orderBy('rate', 'desc')
+            ->orderBy('updated_at', 'desc')
+            ->take(3)
+            ->get()
+            ->pluck('meal');
+        $DislikedMeals = $user->meal_rating()
+            ->whereIn('rate', [1, 2])
+            ->with('meal')
+            ->orderBy('rate', 'asc')
+            ->orderBy('updated_at', 'desc')
+            ->take(3)
+            ->get()
+            ->pluck('meal');
+        return response()->json([
+            'likedlist' => $LikedMeals,
+            'dislikedlist' => $DislikedMeals
+        ]);
     }
 
     /**

@@ -18,7 +18,7 @@ class Order extends Model
 
     public function orderItems()
     {
-        return $this->hasMany(OrderItem::class,'order_id','id');
+        return $this->hasMany(OrderItem::class,'order_id','id')->with("ingredient")->with("meal");
     }
 
     public function sendOrderDetailEmail()
@@ -27,24 +27,8 @@ class Order extends Model
             'name' => $this->user->name,
             'orderItem' => $this->orderItems,
             'order' => $this,
+            'status' => $this->status,
         );
         Mail::to($this->user->email)->send(new OrderEmail($data));
-
-        // if(count(Mail::failures())>0) {
-        //     return response()->json(["data" => "fail"], 200);
-        // }
-        // try {
-        //     Mail::to($this->user->email)->send(new OrderEmail($data));
-        //     $isSent =  true;
-        // } catch (\Exception $e) {
-        //     $isSent = false;
-        // }
-
-        // if($isSent) {
-        //     return response()->json(["data" => "success"], 200);
-        // }
-        // else {
-        //     return response()->json(["data" => "fail"], 200);
-        // }
     }
 }

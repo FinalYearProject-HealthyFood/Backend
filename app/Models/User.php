@@ -47,6 +47,11 @@ class User extends Authenticatable implements MustVerifyEmail
         'email_verified_at' => 'datetime',
     ];
 
+    public function role()
+    {
+        return $this->belongsTo(Role::class, 'role_id', 'id');
+    }
+
     public function orders()
     {
         return $this->hasMany(Order::class, 'user_id', 'id');
@@ -54,6 +59,21 @@ class User extends Authenticatable implements MustVerifyEmail
     public function orderItems()
     {
         return $this->hasMany(Order::class, 'user_id', 'id');
+    }
+
+    public function ingredient_rating()
+    {
+        return $this->hasMany(RatingIngredient::class, 'user_id', 'id');
+    }
+
+    public function meal_rating()
+    {
+        return $this->hasMany(Rating::class, 'user_id', 'id');
+    }
+
+    public function hasRole($roleName)
+    {
+        return $this->role->name === $roleName;
     }
 
     public function sendVerificationEmail()

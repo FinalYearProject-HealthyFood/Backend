@@ -6,6 +6,7 @@ use App\Models\Ingredient;
 use App\Models\Meal;
 use App\Models\OrderItem;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -17,7 +18,7 @@ class OrderItemController extends Controller
      */
     public function index()
     {
-        $orderItems = OrderItem::all();
+        $orderItems = OrderItem::with("meal")->with("ingredient")->get();
 
         return response()->json($orderItems);
     }
@@ -25,7 +26,51 @@ class OrderItemController extends Controller
     public function onPendingByUser(Request $request)
     {
         $user = Auth::user();
-        $orderItems = OrderItem::with('meal')->with('ingredient')->where("status", "pending")->where("user_id", $user->id)->orderBy('id', 'DESC')->get();
+        $orderItems = OrderItem::with('meal')
+            ->with('ingredient')
+            ->where("status", "pending")
+            ->where("user_id", $user->id)
+            ->orderBy('id', 'DESC')
+            ->get();
+
+        return response()->json($orderItems);
+    }
+
+    public function deliverylast2DaysByUser(Request $request)
+    {
+        $startDate = Carbon::now()->subDays(2)->startOfDay();
+        $endDate = Carbon::now()->endOfDay();
+        $user = Auth::user();
+        $orderItems = OrderItem::whereBetween('created_at', [$startDate, $endDate])
+            ->with('meal')->with('ingredient')
+            ->where("status", "delivered")
+            ->where("for_me", "yes")
+            ->where("user_id", $user->id)
+            ->orderBy('id', 'DESC')
+            ->get();
+
+        return response()->json($orderItems);
+    }
+    public function deliveryInDayByUser(Request $request)
+    {
+        $startDate = Carbon::now()->startOfDay();
+        $endDate = Carbon::now()->endOfDay();
+        $user = Auth::user();
+        $orderItems = OrderItem::whereBetween('created_at', [$startDate, $endDate])
+            ->with('meal')->with('ingredient')
+            ->where("status", "delivered")
+            ->where("for_me", "yes")
+            ->where("user_id", $user->id)
+            ->orderBy('id', 'DESC')
+            ->get();
+
+        return response()->json($orderItems);
+    }
+
+    public function onCartByUser(Request $request)
+    {
+        $user = Auth::user();
+        $orderItems = OrderItem::with('meal')->with('ingredient')->where("status", "incart")->where("user_id", $user->id)->orderBy('id', 'DESC')->get();
 
         return response()->json($orderItems);
     }
@@ -33,7 +78,7 @@ class OrderItemController extends Controller
     public function cartCountByUser(Request $request)
     {
         $user = Auth::user();
-        $orderItems = OrderItem::where("status", "pending")->where("user_id", $user->id)->get();
+        $orderItems = OrderItem::where("status", "incart")->where("user_id", $user->id)->get();
 
         return response()->json($orderItems->count());
     }
@@ -49,7 +94,7 @@ class OrderItemController extends Controller
     public function itemDeliverdByUser(Request $request)
     {
         $user = Auth::user();
-        $orderItems = OrderItem::with('meal')->with('ingredient')->where("status", "accepted")->where("user_id", $user->id)->orderBy('id', 'DESC')->paginate(5);
+        $orderItems = OrderItem::with('meal')->with('ingredient')->where("status", "delivered")->where("user_id", $user->id)->orderBy('id', 'DESC')->paginate(5);
 
         return response()->json($orderItems);
     }
@@ -158,6 +203,9 @@ class OrderItemController extends Controller
 
         $orderItem->meal_id = $meal->id;
         $orderItem->total_price = $meal->price * $orderItem->quantity;
+        if ($request->has('for_me')) {
+            $orderItem->for_me = $request->for_me;
+        }
 
         $orderItem->save();
 
@@ -211,7 +259,7 @@ class OrderItemController extends Controller
         } else {
             return response()->json(['error' => 'Empty order item.'], 400);
         }
-        
+
         if ($orderItem->save()) {
             return response()->json(['message' => 'Order item updated successfully', 'data' => $orderItem]);
         } else {
@@ -248,21 +296,23 @@ class OrderItemController extends Controller
         }
     }
 
-    public function destroy_all_by_user() {
-        $user = Auth::user();
-        if (!$user) {
-            return response()->json(['errors' => 'you dont have this permission'], 422);
-        }
-        OrderItem::where('user_id', $user->id)->delete();
-        return response()->json(['message' => 'Order items deleted successfully']);
-    }
-
-    public function destroy_all_pending_by_user() {
+    public function destroy_all_by_user()
+    {
         $user = Auth::user();
         if (!$user) {
             return response()->json(['errors' => 'you dont have this permission'], 422);
         }
         OrderItem::where('user_id', $user->id)->where("status", "pending")->delete();
+        return response()->json(['message' => 'Order items deleted successfully']);
+    }
+
+    public function destroy_all_pending_by_user()
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['errors' => 'you dont have this permission'], 422);
+        }
+        OrderItem::where('user_id', $user->id)->where("status", "incart")->delete();
         return response()->json(['message' => 'Order items deleted successfully']);
     }
 }

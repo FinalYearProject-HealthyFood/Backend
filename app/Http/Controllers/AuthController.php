@@ -37,7 +37,7 @@ class AuthController extends Controller
         $token = $user->createToken($user->email)->plainTextToken;
 
         return response([
-            'user' => $user,
+            'user' => $user::with("role"),
             'token' => $token
         ]);
         // } catch (Exception $error) {
@@ -52,36 +52,41 @@ class AuthController extends Controller
     public function login(LoginRequest $request)
     {
         // try {
-            $credentials = $request->validated();
-            $remember = $credentials['remember'] ?? false;
-            unset($credentials['remember']);
+        $credentials = $request->validated();
+        $remember = $credentials['remember'] ?? false;
+        unset($credentials['remember']);
 
-            if (!Auth::attempt($credentials)) {
-                return response([
+        if (!Auth::attempt($credentials)) {
+            return response(
+                [
                     "errors" =>
                     [
-                        'error' => ['The Provided credentials are not correct']
+                        'error' => ['Thông tin đăng nhập được cung cấp không chính xác']
                     ]
+                ],
+                422
+            );
+        }
+        $user = Auth::user();
+        // $user =  User::where('email', $request['email'])->first();
+
+        if (!Hash::check($request['password'], $user->password)) {
+            return response()->json([
+                "errors" =>
+                [
+                    'error' => ['Password not match']
                 ]
-                , 422);
-            }
-            $user = Auth::user();
-            // $user =  User::where('email', $request['email'])->first();
+            ], 422);
+        }
 
-            if (!Hash::check($request['password'], $user->password)) {
-                return response()->json([
-                    "errors" =>
-                    [
-                        'error' => ['Password not match']
-                    ]
-                ], 422);
-            }
-            $token = $user->createToken($user->email)->plainTextToken;
+        $user->load('role');
 
-            return response([
-                'user' => $user,
-                'token' => $token
-            ]);
+        $token = $user->createToken($user->email)->plainTextToken;
+
+        return response([
+            'user' => $user,
+            'token' => $token
+        ]);
         // } catch (Exception $error) {
         //     return response()->json([
         //         'status_code' => 500,
@@ -108,6 +113,8 @@ class AuthController extends Controller
     }
     public function me(Request $request)
     {
-        return $request->user();
+        $user = $request->user();
+        $user->load('role');
+        return $user;
     }
 }

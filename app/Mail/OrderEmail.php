@@ -32,7 +32,7 @@ class OrderEmail extends Mailable
     {
         return new Envelope(
             from: new Address('phuclc1508@gmail.com', 'Healthy Food Store'),
-            subject: 'Order Email',
+            subject: '[Healthy Food Store] Order Email Status',
         );
     }
 
@@ -47,6 +47,7 @@ class OrderEmail extends Mailable
                 'name' => $this->data['name'],
                 'orderItem' => $this->data['orderItem'],
                 'order' => $this->data['order'],
+                'status' => $this->data['status'],
             ]
         );
     }

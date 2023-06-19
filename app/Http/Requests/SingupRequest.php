@@ -28,4 +28,20 @@ class SingupRequest extends FormRequest
             'password_confirmation' => 'required|same:password',
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'name.required' => 'Tên là bắt buộc.',
+            'name.string' => 'Tên phải là chuỗi.',
+            'email.required' => 'Email là bắt buộc.',
+            'email.unique' => 'Email này đã được sử dụng.',
+            'email.email' => 'Email phải là email hợp lệ.',
+            'password.required' => 'password là bắt buộc.',
+            'password.string' => 'password phải là chuỗi.',
+            'password.min' => 'password phải lớn hơn 6 ký tự.',
+            'password_confirmation.required' => 'password confirmation là bắt buộc.',
+            'password_confirmation.same' => 'password confirmation phải giống với password.',
+        ];
+    }
 }

@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\OrderItem;
+use App\Models\Role;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -16,10 +19,77 @@ class UserController extends Controller
 
     public function index(Request $request)
     {
-        $users = User::where('name', 'like', '%' . $request->search . '%')->paginate(5);
+        $users = User::with('role')
+            ->where(function ($query) use ($request) {
+                $query->where('name', 'like', '%' . $request->search . '%')
+                    ->orWhere('email', 'like', '%' . $request->search . '%')
+                    ->orWhere('phone', 'like', '%' . $request->search . '%')
+                    ->orWhereHas('role', function ($roleQuery) use ($request) {
+                        $roleQuery->where('name', 'like', '%' . $request->search . '%');
+                    });
+            })
+            ->paginate(5);
+
         return response()->json($users);
     }
 
+    public function getTodayCaloriesEatenByUser($id)
+    {
+        $sumCalories = OrderItem::where('user_id', $id)
+            ->where('for_me', 'yes')
+            ->where('order_items.status', 'delivered')
+            ->whereDate('order_items.updated_at', '>=', now()->startOfDay())
+            ->join('meals', 'order_items.meal_id', '=', 'meals.id')
+            ->sum('meals.calories');
+        $user = User::find($id);
+        $caloriesPerday = 1500;
+        if (
+            $user->weight !== null && $user->weight !== "" &&
+            $user->height !== null && $user->height !== "" &&
+            $user->age !== null && $user->age !== "" &&
+            $user->activity !== null && $user->activity !== "" &&
+            $user->gender !== null && $user->gender !== ""
+        ) {
+            $caloriesPerday = round($this->mifflin_cal($user->weight, $user->height, $user->age, $user->activity, $user->gender));
+        } else {
+            $caloriesPerday = 1500;
+        }
+        $startDate = Carbon::now()->startOfDay();
+        $endDate = Carbon::now()->endOfDay();
+        $orderItems = OrderItem::whereBetween('created_at', [$startDate, $endDate])
+            ->with('meal')->with('ingredient')
+            ->where("status", "delivered")
+            ->where("for_me", "yes")
+            ->where("user_id", $user->id)
+            ->orderBy('id', 'DESC')
+            ->get();
+
+        $count = $orderItems->count();
+        if ($user->plan > $count) {
+            return response()->json([
+                "eatencalories" => $sumCalories,
+                "caloriesperday" => $caloriesPerday,
+                "calorieswilleat" => round(($caloriesPerday - $sumCalories) / ($user->plan - $count)),
+                "plan" => $user->plan,
+                "countdiet" => $count,
+            ]);
+        }
+        return response()->json([
+            "eatencalories" => $sumCalories,
+            "caloriesperday" => $caloriesPerday,
+            "calorieswilleat" => round(($caloriesPerday) / ($user->plan)),
+            "plan" => $user->plan,
+            "countdiet" => $count,
+        ]);
+    }
+    function mifflin_cal($w, $h, $a, $activity, $g)
+    {
+        if ($g == "male") {
+            return floor((10 * $w + 6.25 * $h - 5 * $a + 5) * $activity);
+        } else {
+            return floor((10 * $w + 6.25 * $h - 5 * $a - 161) * $activity);
+        }
+    }
     public function update(Request $request)
     {
         $user = Auth::user();
@@ -30,6 +100,8 @@ class UserController extends Controller
         $edit_user->weight = $request->weight;
         $edit_user->height = $request->height;
         $edit_user->gender = $request->gender;
+        $edit_user->activity = $request->activity;
+        $edit_user->plan = $request->plan;
         $edit_user->address = ($request->address !== null) ? $request->address : "";
         $edit_user->phone = ($request->phone !== null) ? $request->phone : "";
         $edit_user->save();
@@ -68,6 +140,8 @@ class UserController extends Controller
         $edit_user->address = ($request->address !== null) ? $request->address : "";
         $edit_user->phone = ($request->phone !== null) ? $request->phone : "";
         ($request->verify == "yes") ? $edit_user->email_verified_at = now() : $edit_user->email_verified_at = null;
+        $role = Role::findOrFail($request->role);
+        $edit_user->role()->associate($role);
         $edit_user->save();
         return response()->json([
             'message' => 'Profile updated successfully',
@@ -93,6 +167,8 @@ class UserController extends Controller
         $user->phone = ($request->phone !== null) ? $request->phone : "";
         $user->password = Hash::make($request->password);
         ($request->verify == "yes") ? $user->email_verified_at = now() : "";
+        $role = Role::findOrFail($request->role);
+        $user->role()->associate($role);
         $user->save();
         return response()->json([
             'message' => 'Account created successfully',

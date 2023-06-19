@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Ingredient;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -14,7 +15,7 @@ class IngredientController extends Controller
      */
     public function index()
     {
-        $ingredients = Ingredient::where('status', 'active')->paginate(6);
+        $ingredients = Ingredient::withCount("rating")->where('status', 'active')->paginate(6);
 
         return response()->json($ingredients);
     }
@@ -32,7 +33,7 @@ class IngredientController extends Controller
 
         return response()->json($ingredients);
     }
-    
+
     public function allToFilterActive()
     {
         $ingredients = Ingredient::where('status', 'active')->get();
@@ -42,11 +43,69 @@ class IngredientController extends Controller
 
     public function DataToAI()
     {
-        $ingredients = Ingredient::all();
+        $ingredients = Ingredient::where('status', 'active')->get();
 
         return response()->json($ingredients);
     }
 
+    public function getHighestRating()
+    {
+        $ingredients = Ingredient::where('status', 'active')
+            ->orderBy('rate', 'desc')
+            ->orderBy('updated_at', 'desc')
+            ->limit(4)
+            ->get();
+        return response()->json($ingredients);
+    }
+    public function getListHighRatingByUser($id)
+    {
+        $user = User::findOrFail($id);
+        $LikedIngredients = $user->ingredient_rating()
+            ->whereIn('rate', [3, 4, 5])
+            ->with('ingredient')
+            ->orderBy('rate', 'desc')
+            ->orderBy('updated_at', 'desc')
+            ->take(3)
+            ->get()
+            ->pluck('ingredient');
+        $DislikedIngredients = $user->ingredient_rating()
+            ->whereIn('rate', [1, 2])
+            ->with('ingredient')
+            ->orderBy('rate', 'asc')
+            ->orderBy('updated_at', 'desc')
+            ->take(3)
+            ->get()
+            ->pluck('ingredient');
+        return response()->json([
+            'likedlist' => $LikedIngredients,
+            'dislikedlist' => $DislikedIngredients
+        ]);
+    }
+
+    public function getListLowRatingByUser($id)
+    {
+        $user = User::findOrFail($id);
+        $LikedIngredients = $user->ingredient_rating()
+            ->whereIn('rate', [3, 4, 5])
+            ->with('ingredient')
+            ->orderBy('rate', 'desc')
+            ->orderBy('updated_at', 'desc')
+            ->take(3)
+            ->get()
+            ->pluck('ingredient');
+        $DislikedIngredients = $user->ingredient_rating()
+            ->whereIn('rate', [1, 2])
+            ->with('ingredient')
+            ->orderBy('rate', 'asc')
+            ->orderBy('updated_at', 'desc')
+            ->take(3)
+            ->get()
+            ->pluck('ingredient');
+        return response()->json([
+            'likedlist' => $LikedIngredients,
+            'dislikedlist' => $DislikedIngredients
+        ]);
+    }
     /**
      * Store a newly created resource in storage.
      */
