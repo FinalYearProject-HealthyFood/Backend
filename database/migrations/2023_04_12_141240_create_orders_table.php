@@ -15,6 +15,8 @@ return new class extends Migration
             $table->id();
             $table->bigInteger('user_id')->unsigned()->index();
             $table->enum('status',['pending','accepted','delivered','canceled'])->default('pending');
+            $table->enum('payment_mode',['delivery','paypal'])->default('delivery');
+            $table->string('payment_id')->nullable();
             $table->double("total_price")->default(0.0);
             $table->string('delivery_address');
             $table->string('username');

@@ -96,6 +96,19 @@
                     </td>
                 </tr>
                 <tr>
+                    <th>Hình thức thanh toán:</th>
+                    <td @style([
+                        'color: blue' => $order->payment_mode == 'paypal',
+                        'color: green' => $order->payment_mode == 'delivery',
+                    ])>
+                        @if ($order->payment_mode == 'paypal')
+                            Đã thanh toán qua Paypal
+                        @else
+                            Thanh toán khi giao hàng
+                        @endif
+                    </td>
+                </tr>
+                <tr>
                     <th>Ngày đặt:</th>
                     <td>{{ date_format($order->created_at, 'H:i d/m/Y') }}</td>
                 </tr>

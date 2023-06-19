@@ -5,6 +5,7 @@ use App\Http\Controllers\IngredientController;
 use App\Http\Controllers\MealController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\OrderItemController;
+use App\Http\Controllers\PaypalController;
 use App\Http\Controllers\RatingController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SearchController;
@@ -145,6 +146,13 @@ Route::controller(RatingController::class)->group(function () {
         Route::middleware('auth:sanctum')->group(function () {
             Route::get('/meal/{id}', [RatingController::class, 'rateMeal'])->name('rate.rateMeal');
             Route::get('/ingredient/{id}', [RatingController::class, 'rateIngredient'])->name('rate.rateIngredient');
+        });
+    });
+});
+Route::controller(PaypalController::class)->group(function () {
+    Route::group(['prefix' => 'paypal'], function () {
+        Route::middleware('auth:sanctum')->group(function () {
+            Route::post('/store', [PaypalController::class, 'store'])->name('orderItems.store');
         });
     });
 });
