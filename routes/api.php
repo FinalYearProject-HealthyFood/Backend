@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\FaqController;
 use App\Http\Controllers\IngredientController;
 use App\Http\Controllers\MealController;
 use App\Http\Controllers\OrderController;
@@ -165,5 +166,16 @@ Route::controller(RoleController::class)->group(function () {
 Route::controller(SearchController::class)->group(function () {
     Route::group(['prefix' => 'search'], function () {
         Route::get('/home', [SearchController::class, 'searchHome'])->name('search.searchHome');
+    });
+});
+
+Route::controller(FaqController::class)->group(function () {
+    Route::group(['prefix' => 'faq'], function () {
+        Route::get('/', [FaqController::class, 'index'])->name('faq.index');
+        Route::get('/all', [FaqController::class, 'all'])->name('faq.all');
+        Route::get('/{id}', [FaqController::class, 'show'])->name('faq.show');
+        Route::post('/', [FaqController::class, 'store'])->name('faq.store');
+        Route::put('/{id}', [FaqController::class, 'update'])->name('faq.update');
+        Route::delete('/{id}', [FaqController::class, 'destroy'])->name('faq.delete');
     });
 });

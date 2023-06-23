@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             IngredientSeeder::class,
             RoleSeeder::class,
             UserSeeder::class,
+            FaqSeeder::class,
         ]);
     }
 }
