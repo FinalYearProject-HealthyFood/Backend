@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Meal;
 use App\Models\OrderItem;
 use App\Models\Role;
 use App\Models\User;
@@ -35,8 +36,8 @@ class UserController extends Controller
 
     public function getTodayCaloriesEatenByUser($id)
     {
-        $sumCalories = OrderItem::where('user_id', $id)
-            ->where('for_me', 'yes')
+        $sumCalories = OrderItem::where('order_items.user_id', $id)
+            ->where('order_items.for_me', 'yes')
             ->where('order_items.status', 'delivered')
             ->whereDate('order_items.updated_at', '>=', now()->startOfDay())
             ->join('meals', 'order_items.meal_id', '=', 'meals.id')
@@ -212,5 +213,29 @@ class UserController extends Controller
             }
             return response()->json(['message' => "User not found"]);
         }
+    }
+
+    public function MyMeal(Request $request)
+    {
+        $user = $request->user();
+        $meals = $user->meals;
+        return response()->json($meals);
+    }
+    public function removeMyMeal(Request $request, $id)
+    {
+        $user = $request->user();
+        $meal = Meal::where("id", $id)->where("user_id", $user->id)->first();
+        $meal->update([
+            'user_id' => null,
+        ]);
+        return response()->json($meal);
+    }
+    public function removeAllMyMeal(Request $request)
+    {
+        $user = $request->user();
+        $meal = Meal::where("user_id", $user->id)->update([
+            'user_id' => null,
+        ]);
+        return response()->json($meal);
     }
 }

@@ -149,4 +149,20 @@ class OrderController extends Controller
             'message' => 'Order deleted successfully',
         ]);
     }
+    public function destroyPending($id)
+    {
+        $order = Order::findOrFail($id);
+        if ($order->status != "pending") {
+            return response()->json([
+                "errors" =>
+                [
+                    'error' => ['Đơn hàng này trong tình trạng đã được xử lý. Bạn không thể xóa.']
+                ]
+            ], 422);
+        }
+        $order->delete();
+        return response()->json([
+            'message' => 'Order deleted successfully',
+        ]);
+    }
 }

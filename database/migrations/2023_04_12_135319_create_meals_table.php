@@ -33,7 +33,9 @@ return new class extends Migration
             $table->enum('status',['active','deactive'])->default('active');
             $table->string('image')->nullable();
             $table->double('rate')->default(0.0);
+            $table->unsignedBigInteger('user_id')->nullable();
             $table->timestamps();
+            $table->foreign('user_id')->references('id')->on('users');
         });
     }
 

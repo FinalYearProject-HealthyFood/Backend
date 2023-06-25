@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\FaqController;
+use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\IngredientController;
 use App\Http\Controllers\MealController;
 use App\Http\Controllers\OrderController;
@@ -36,6 +37,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/profile/update', [UserController::class, 'update']);
     Route::post('/profile/change-password', [UserController::class, 'changePassword']);
+    Route::get('/my-meal', [UserController::class, 'MyMeal']);
+    Route::put('/remove-my-meal/{id}', [UserController::class, 'removeMyMeal']);
+    Route::put('/remove-all-meal', [UserController::class, 'removeAllMyMeal']);
 });
 
 Route::get('/test', function () {
@@ -113,6 +117,7 @@ Route::controller(OrderController::class)->group(function () {
         Route::get('/send-email/{id}', [OrderController::class, 'sendOrderEmail'])->name('orders.sendOrderEmail');
         Route::put('/update/{id}', [OrderController::class, 'update'])->name('orders.update');
         Route::delete('/delete/{id}', [OrderController::class, 'destroy'])->name('orders.destroy');
+        Route::delete('/delete-pending/{id}', [OrderController::class, 'destroyPending'])->name('orders.destroyPending');
         Route::middleware('auth:sanctum', 'role:user,admin,ordermod,foodmod,manager')->group(function () {
             Route::post('/store', [OrderController::class, 'store'])->middleware(['verified'])->name('orders.store');
         });
@@ -128,7 +133,9 @@ Route::controller(OrderItemController::class)->group(function () {
         Route::middleware('auth:sanctum')->group(function () {
             Route::post('/store', [OrderItemController::class, 'store'])->name('orderItems.store');
             Route::post('/fromai', [OrderItemController::class, 'dietFromAi'])->name('orderItems.dietFromAi');
+            Route::post('/create-from-cart', [OrderItemController::class, 'dietSelfCreate'])->name('orderItems.dietSelfCreate');
             Route::put('/update/{id}', [OrderItemController::class, 'update'])->name('orderItems.update');
+            Route::put('/update-forme/{id}', [OrderItemController::class, 'updateForme'])->name('orderItems.update');
             Route::delete('/delete-by-user/{id}', [OrderItemController::class, 'destroyByUser'])->name('orderItems.destroy');
             Route::delete('/delete-all-by-user', [OrderItemController::class, 'destroy_all_by_user'])->name('orderItems.destroy_all_by_user');
             Route::delete('/delete-all-incart-by-user', [OrderItemController::class, 'destroy_all_pending_by_user'])->name('orderItems.destroy_all_pending_by_user');
@@ -179,3 +186,9 @@ Route::controller(FaqController::class)->group(function () {
         Route::delete('/{id}', [FaqController::class, 'destroy'])->name('faq.delete');
     });
 });
+
+// Route for sending the password reset email with PIN code
+Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
+
+// Route for resetting the password with PIN code
+Route::post('/reset-password', [ForgotPasswordController::class, 'resetPasswordWithPin'])->name('password.update');

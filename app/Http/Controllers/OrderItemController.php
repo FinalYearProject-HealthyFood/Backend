@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
-class OrderItemController extends Controller
+class  OrderItemController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -149,7 +149,7 @@ class OrderItemController extends Controller
             'ingredients.*.id' => 'required|exists:ingredients,id',
             'ingredients.*.quantity' => 'required',
         ]);
-
+        $user = Auth::user();
         $meal = new Meal();
         $meal->name = $request->name;
         $meal->description = $request->description;
@@ -187,6 +187,7 @@ class OrderItemController extends Controller
             $meal->zinc = $request->zinc;
         }
         $meal->status = "deactive";
+        $meal->user_id = $user->id;
         $meal->save();
 
         if ($request->ingredients) {
@@ -194,8 +195,6 @@ class OrderItemController extends Controller
                 $meal->ingredients()->attach($ingredient['id'], ['quantity' => $ingredient['quantity']]);
             }
         }
-
-        $user = Auth::user();
 
         $orderItem = new OrderItem();
         $orderItem->quantity = 1;
@@ -208,6 +207,79 @@ class OrderItemController extends Controller
         }
 
         $orderItem->save();
+
+        return response()->json([
+            'message' => 'Meal created successfully',
+            'data' => $meal,
+        ]);
+    }
+    public function dietSelfCreate(Request $request)
+    {
+        $request->validate([
+            'name' => 'required',
+            'description' => 'nullable',
+        ]);
+        $user = Auth::user();
+        $orderItems = OrderItem::with('meal')->with('ingredient')->where("status", "incart")->where("user_id", $user->id)->whereNotNull("ingredient_id")->orderBy('id', 'DESC')->get();
+        if (count($orderItems) == 0) {
+            return response()->json([
+                "errors" =>
+                [
+                    'error' => ['Không có thành phần được chọn nào']
+                ]
+            ], 422);
+        }
+        $meal = new Meal();
+        $meal->name = $request->name;
+        if ($request->has('description')) {
+            $meal->description = $request->description;
+        }
+        $meal->price = 0;
+        $meal->serving_size = 0;
+        $meal->calories = 0;
+        $meal->protein = 0;
+        $meal->carb = 0;
+        $meal->fat = 0;
+        $meal->sat_fat = 0;
+        $meal->trans_fat = 0;
+        $meal->fiber = 0;
+        $meal->sugar = 0;
+        $meal->cholesterol = 0;
+        $meal->sodium = 0;
+        $meal->calcium = 0;
+        $meal->iron = 0;
+        $meal->zinc = 0;
+        $meal->status = "deactive";
+        $meal->user_id = $user->id;
+        $meal->save();
+        foreach ($orderItems as $orderItem) {
+            $meal->price += $orderItem->total_price;
+            $meal->serving_size += ($orderItem->ingredient->serving_size * $orderItem->quantity);
+            $meal->calories += ($orderItem->ingredient->calories * $orderItem->quantity);
+            $meal->protein += ($orderItem->ingredient->protein * $orderItem->quantity);
+            $meal->carb += ($orderItem->ingredient->carb * $orderItem->quantity);
+            $meal->fat += ($orderItem->ingredient->fat * $orderItem->quantity);
+            $meal->sat_fat += ($orderItem->ingredient->sat_fat * $orderItem->quantity);
+            $meal->trans_fat += ($orderItem->ingredient->trans_fat * $orderItem->quantity);
+            $meal->fiber += ($orderItem->ingredient->fiber * $orderItem->quantity);
+            $meal->sugar += ($orderItem->ingredient->sugar * $orderItem->quantity);
+            $meal->cholesterol += ($orderItem->ingredient->cholesterol * $orderItem->quantity);
+            $meal->sodium += ($orderItem->ingredient->sodium * $orderItem->quantity);
+            $meal->calcium += ($orderItem->ingredient->calcium * $orderItem->quantity);
+            $meal->iron += ($orderItem->ingredient->iron * $orderItem->quantity);
+            $meal->zinc += ($orderItem->ingredient->zinc * $orderItem->quantity);
+            $meal->save();
+            $meal->ingredients()->attach($orderItem->ingredient->id, ['quantity' => $orderItem->quantity]);
+        }
+        $orderItemNew = new OrderItem();
+        $orderItemNew->quantity = 1;
+        $orderItemNew->user_id = $user->id;
+        $orderItemNew->meal_id = $meal->id;
+        $orderItemNew->total_price = $meal->price * $orderItemNew->quantity;
+        if ($request->has('for_me')) {
+            $orderItemNew->for_me = $request->for_me;
+        }
+        $orderItemNew->save();
 
         return response()->json([
             'message' => 'Meal created successfully',
@@ -259,6 +331,24 @@ class OrderItemController extends Controller
         } else {
             return response()->json(['error' => 'Empty order item.'], 400);
         }
+
+        if ($orderItem->save()) {
+            return response()->json(['message' => 'Order item updated successfully', 'data' => $orderItem]);
+        } else {
+            return response()->json(['message' => 'Unable to update order item'], 500);
+        }
+    }
+
+    public function updateForme(Request $request, $id)
+    {
+        $orderItem = OrderItem::findOrFail($id);
+        $user = Auth::user();
+
+        if ($user->id != $orderItem->user_id) {
+            return response()->json(['errors' => 'you dont have this permission'], 422);
+        }
+
+        $orderItem->for_me = $request['for_me'];
 
         if ($orderItem->save()) {
             return response()->json(['message' => 'Order item updated successfully', 'data' => $orderItem]);

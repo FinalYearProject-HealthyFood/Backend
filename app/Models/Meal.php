@@ -9,6 +9,10 @@ class Meal extends Model
 {
     use HasFactory;
 
+    protected $fillable = [
+        'user_id',
+    ];
+
     public function ingredients()
     {
         return $this->belongsToMany(Ingredient::class, 'meal_ingredients')->withPivot('quantity');
@@ -22,6 +26,11 @@ class Meal extends Model
     public function rating()
     {
         return $this->hasMany(Rating::class, 'meal_id', 'id');
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class,'user_id','id');
     }
 
     public function is_rating_by_auth($id)
