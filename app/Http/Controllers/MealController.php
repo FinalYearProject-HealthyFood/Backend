@@ -130,7 +130,7 @@ class MealController extends Controller
         if ($image) {
             $type = $image->getClientOriginalExtension();
 
-            if (!in_array($type, ['jpg', 'jpeg', 'gif', 'png'])) {
+            if (!in_array($type, ['jpg', 'jpeg', 'gif', 'png', 'PNG'])) {
                 return response()->json([
                     'message' => 'Invalid image type',
                 ], 422);
@@ -318,7 +318,7 @@ class MealController extends Controller
         if ($image) {
             $type = $image->getClientOriginalExtension();
 
-            if (!in_array($type, ['jpg', 'jpeg', 'gif', 'png'])) {
+            if (!in_array($type, ['jpg', 'jpeg', 'gif', 'png', 'PNG'])) {
                 return response()->json([
                     'message' => 'Invalid image type',
                 ], 422);
