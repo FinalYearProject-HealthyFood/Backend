@@ -13,7 +13,7 @@ class MealSeeder extends Seeder
      */
     public function run(): void
     {
-        $csvFile = fopen(base_path("database/data/meals.csv"), "r");
+        $csvFile = fopen(base_path("database/data/meal.csv"), "r");
 
         $firstline = true;
         while (($data = fgetcsv($csvFile, 2000, ",")) !== FALSE) {
